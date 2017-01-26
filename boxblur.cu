@@ -16,10 +16,10 @@ void output_image_file(uchar4* image);
 void input_image_file(char* filename, uchar4* image);
 void checkCUDAError(const char *msg);
 
-typedef enum { STARTING_CODE, EXERCISE_01, EXERCISE_02, EXERCISE_03, EXERCISE_04 } EXERCISE;
+typedef enum { STARTING_CODE, EXERCISE_01, EXERCISE_02, EXERCISE_03 } EXERCISE;
 
 //change the following variable to run the different exercises
-EXERCISE exercise = EXERCISE_04;
+EXERCISE exercise = EXERCISE_03;
 
 __global__ void image_blur_columns(uchar4 *image, uchar4 *image_output) {
 
@@ -152,75 +152,6 @@ __global__ void image_blur_2d(uchar4 *image, uchar4 *image_output) {
 	image_output[output_offset].w = 255;
 }
 
-__global__ void image_blur_2d_sm(uchar4 *image, uchar4 *image_output) {
-	// map from threadIdx/BlockIdx to pixel position
-	int x = threadIdx.x + blockIdx.x * blockDim.x;
-	int y = threadIdx.y + blockIdx.y * blockDim.y;
-	int output_offset = x + y * IMAGE_DIM;
-	uchar4 pixel;
-	float4 average = make_float4(0, 0, 0, 0);
-
-	//declare Shared memory (extra x element to avoid bank conflicts)
-	__shared__ uchar4 s_data[18][18+1];
-
-	//each thread within block the index remapped to the shared memory tile so that it can perform multiple (at most) loads
-
-	//first load
-	int sm_i = threadIdx.y * 16 + threadIdx.x;
-	int sm_x = sm_i % (18);
-	int sm_y = sm_i / (18);
-	int g_x = sm_x - 1 + blockIdx.x * blockDim.x;
-	int g_y = sm_y - 1 + blockIdx.y * blockDim.y;
-	if ((g_x < 0) || (g_x >= IMAGE_DIM) || (g_y < 0) || (g_y >= IMAGE_DIM)){
-		s_data[sm_y][sm_x] = make_uchar4(0, 0, 0, 0);
-	}
-	else{
-		s_data[sm_y][sm_x] = image[g_x + g_y*IMAGE_DIM];
-	}
-	
-	//second load (only if index is less than the total number of values which must be loaded to shared memory)
-	sm_i += 16*16;
-	if (sm_i < (18 * 18)){
-		sm_x = sm_i % (16 + 2);
-		sm_y = sm_i / (16 + 2);
-		g_x = sm_x - 1 + blockIdx.x * blockDim.x;
-		g_y = sm_y - 1 + blockIdx.y * blockDim.y;
-		if ((g_x < 0) || (g_x >= IMAGE_DIM) || (g_y < 0) || (g_y >= IMAGE_DIM)){
-			s_data[sm_y][sm_x] = make_uchar4(0, 0, 0, 0);
-		}
-		else{
-			s_data[sm_y][sm_x] = image[g_x + g_y*IMAGE_DIM];
-		}
-	}
-
-	//sync
-	__syncthreads();
-
-	for (int i = -BOX_SIZE; i <= BOX_SIZE; i++){
-		for (int j = -BOX_SIZE; j <= BOX_SIZE; j++){
-			int x_block_offset = threadIdx.x + i + 1;
-			int y_block_offset = threadIdx.y + j + 1;
-
-			pixel = s_data[y_block_offset][x_block_offset];
-
-			//sum values
-			average.x += pixel.x;
-			average.y += pixel.y;
-			average.z += pixel.z;
-		}
-	}
-	//calculate average
-	average.x /= (float)NUMBER_OF_SAMPLES;
-	average.y /= (float)NUMBER_OF_SAMPLES;
-	average.z /= (float)NUMBER_OF_SAMPLES;
-
-	image_output[output_offset].x = (unsigned char)average.x;
-	image_output[output_offset].y = (unsigned char)average.y;
-	image_output[output_offset].z = (unsigned char)average.z;
-	image_output[output_offset].w = 255;
-}
-
-
 
 
 /* Host code */
@@ -339,33 +270,6 @@ int main(void) {
 			for (i = 0; i < ITERATIONS; i++){
 				image_blur_2d<< <blocksPerGrid, threadsPerBlock >> >(d_image, d_image_output);
 				checkCUDAError("kernel 2d implementation");
-				d_image_temp = d_image;
-				d_image = d_image_output;
-				d_image_output = d_image_temp;
-			}
-
-			//copy results back to host (careful of the swapped pointers)
-			cudaMemcpy(h_image, d_image, image_size, cudaMemcpyDeviceToHost);
-			checkCUDAError("CUDA memcpy to host");
-
-			cudaEventRecord(stop, 0);
-			cudaEventSynchronize(stop);
-			cudaEventElapsedTime(&ms.x, start, stop);
-			break;
-		}
-		case(EXERCISE_04) : {
-			cudaEventRecord(start, 0);
-			dim3    blocksPerGrid(IMAGE_DIM / 16, IMAGE_DIM / 16);
-			dim3    threadsPerBlock(16, 16);
-
-			// copy image to device memory
-			cudaMemcpy(d_image, h_image, image_size, cudaMemcpyHostToDevice);
-			checkCUDAError("CUDA memcpy to device");
-
-			// loop for number of iterations
-			for (i = 0; i < ITERATIONS; i++){
-				image_blur_2d_sm << <blocksPerGrid, threadsPerBlock >> >(d_image, d_image_output);
-				checkCUDAError("kernel 2d SM implementation");
 				d_image_temp = d_image;
 				d_image = d_image_output;
 				d_image_output = d_image_temp;
