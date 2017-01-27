@@ -23,10 +23,10 @@ EXERCISE exercise = EXERCISE_03;
 
 __global__ void image_blur_columns(uchar4 *image, uchar4 *image_output) {
 
-	// map from threadIdx/BlockIdx to pixel row position
+	// map from threadIdx/BlockIdx to pixel column position
 	int y = threadIdx.x + blockIdx.x * blockDim.x;
 
-	//loop over columns
+	//loop over rows
 	for (int x = 0; x < IMAGE_DIM; x++){
 
 		//calculate the input/output location
