@@ -1,3 +1,4 @@
+// -*-c-*-
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 #include <stdio.h>
@@ -92,71 +93,71 @@ int main(void) {
 
 	switch (exercise){
 	case(STARTING_CODE) : {
-							  // 1d by row
-							  cudaEventRecord(start, 0);
-							  dim3    blocksPerGrid(IMAGE_DIM / 16, 1);
-							  dim3    threadsPerBlock(16, 1);
-							  // loop for number of iterations
-							  for (i = 0; i < ITERATIONS; i++){
-								  // copy image to device memory
-								  cudaMemcpy(d_image, h_image, image_size, cudaMemcpyHostToDevice);
-								  checkCUDAError("CUDA memcpy to device");
-
-								  image_blur_columns << <blocksPerGrid, threadsPerBlock >> >(d_image, d_image_output);
-								  checkCUDAError("kernel starting code implementation");
-
-								  //copy results back to host
-								  cudaMemcpy(h_image, d_image_output, image_size, cudaMemcpyDeviceToHost);
-								  checkCUDAError("CUDA memcpy to host");
-
-							  }
-							  cudaEventRecord(stop, 0);
-							  cudaEventSynchronize(stop);
-							  cudaEventElapsedTime(&ms.x, start, stop);
-							  break;
+	  // 1d by row
+	  cudaEventRecord(start, 0);
+	  dim3    blocksPerGrid(IMAGE_DIM / 16, 1);
+	  dim3    threadsPerBlock(16, 1);
+	  // loop for number of iterations
+	  for (i = 0; i < ITERATIONS; i++){
+	    // copy image to device memory
+	    cudaMemcpy(d_image, h_image, image_size, cudaMemcpyHostToDevice);
+	    checkCUDAError("CUDA memcpy to device");
+	    
+	    image_blur_columns << <blocksPerGrid, threadsPerBlock >> >(d_image, d_image_output);
+	    checkCUDAError("kernel starting code implementation");
+	    
+	    //copy results back to host
+	    cudaMemcpy(h_image, d_image_output, image_size, cudaMemcpyDeviceToHost);
+	    checkCUDAError("CUDA memcpy to host");
+	    
+	  }
+	  cudaEventRecord(stop, 0);
+	  cudaEventSynchronize(stop);
+	  cudaEventElapsedTime(&ms.x, start, stop);
+	  break;
 	}
 	case(EXERCISE_01) : {
-							cudaEventRecord(start, 0);
-							dim3    blocksPerGrid(IMAGE_DIM / 16, 1);
-							dim3    threadsPerBlock(16, 1);
-
-							//TODO: Complete exercise 01
-
-							cudaEventRecord(stop, 0);
-							cudaEventSynchronize(stop);
-							cudaEventElapsedTime(&ms.x, start, stop);
-							break;
+	  cudaEventRecord(start, 0);
+	  dim3    blocksPerGrid(IMAGE_DIM / 16, 1);
+	  dim3    threadsPerBlock(16, 1);
+	  
+	  //TODO: Complete exercise 01
+	  
+	  cudaEventRecord(stop, 0);
+	  cudaEventSynchronize(stop);
+	  cudaEventElapsedTime(&ms.x, start, stop);
+	  break;
 	}
 	case(EXERCISE_02) : {
-							cudaEventRecord(start, 0);
-							dim3    blocksPerGrid(IMAGE_DIM / 16, 1);
-							dim3    threadsPerBlock(16, 1);
-
-							//TODO: Complete exercise 02
-
-							cudaEventRecord(stop, 0);
-							cudaEventSynchronize(stop);
-							cudaEventElapsedTime(&ms.x, start, stop);
-							break;
+	  cudaEventRecord(start, 0);
+	  dim3    blocksPerGrid(IMAGE_DIM / 16, 1);
+	  dim3    threadsPerBlock(16, 1);
+	  
+	  //TODO: Complete exercise 02
+	  
+	  cudaEventRecord(stop, 0);
+	  cudaEventSynchronize(stop);
+	  cudaEventElapsedTime(&ms.x, start, stop);
+	  break;
 	}
 	case(EXERCISE_03) : {
-							cudaEventRecord(start, 0);
-							dim3    blocksPerGrid(IMAGE_DIM / 16, IMAGE_DIM / 16);
-							dim3    threadsPerBlock(16, 16);
-
-							//TODO: Complete exercise 03
-
-							cudaEventRecord(stop, 0);
-							cudaEventSynchronize(stop);
-							cudaEventElapsedTime(&ms.x, start, stop);
-							break;
+	  cudaEventRecord(start, 0);
+	  dim3    blocksPerGrid(IMAGE_DIM / 16, IMAGE_DIM / 16);
+	  dim3    threadsPerBlock(16, 16);
+	  
+	  //TODO: Complete exercise 03
+	  
+	  cudaEventRecord(stop, 0);
+	  cudaEventSynchronize(stop);
+	  cudaEventElapsedTime(&ms.x, start, stop);
+	  break;
 	}
 	case(EXERCISE_04) : {
-							//TODO: Check ou the solution for exercise 04
-							break;
+	  //TODO: Check ou the solution for exercise 04
+	  break;
 	}
 	}
-
+	
 	//output timings
 	printf("Execution times:\n");
 	printf("\tNormal version: %f\n", ms.x);
