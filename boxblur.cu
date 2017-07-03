@@ -20,7 +20,7 @@ void checkCUDAError(const char *msg);
 typedef enum { STARTING_CODE, EXERCISE_01, EXERCISE_02, EXERCISE_03, EXERCISE_04 } EXERCISE;
 
 //change the following variable to run the different exercises
-EXERCISE exercise = EXERCISE_02;
+EXERCISE exercise = EXERCISE_03;
 
 __global__ void image_blur_columns(uchar4 *image, uchar4 *image_output) {
 
@@ -111,6 +111,50 @@ __global__ void image_blur_rows(uchar4 *image, uchar4 *image_output) {
     image_output[output_offset].w = 255;
   }
 }
+
+__global__ void image_blur_2d(uchar4 *image, uchar4 *image_output) {
+
+  // map from threadIdx/BlockIdx to pixel row position
+  int x = threadIdx.x + blockIdx.x * blockDim.x;
+  int y = blockIdx.y * blockDim.y + threadIdx.y;
+    
+    //calculate the input/output location
+  int output_offset = x + y * IMAGE_DIM;
+  uchar4 pixel;
+  float4 average = make_float4(0, 0, 0, 0);
+  
+  for (int i = -BOX_SIZE; i <= BOX_SIZE; i++){
+    for (int j = -BOX_SIZE; j <= BOX_SIZE; j++){
+      int x_offset = x + i;
+      int y_offset = y + j;
+      //bounds check
+      if ((x_offset < 0) || (x_offset >= IMAGE_DIM) || (y_offset < 0) || (y_offset >= IMAGE_DIM)){
+	pixel = make_uchar4(0, 0, 0, 0);
+      }
+      else{
+	//load pixel neighbour
+	int offset = x_offset + y_offset * IMAGE_DIM;
+	pixel = image[offset];
+      }
+      
+      //sum values
+      average.x += pixel.x;
+      average.y += pixel.y;
+      average.z += pixel.z;
+    }
+  }
+  //calculate average
+  average.x /= (float)NUMBER_OF_SAMPLES;
+  average.y /= (float)NUMBER_OF_SAMPLES;
+  average.z /= (float)NUMBER_OF_SAMPLES;
+  
+  image_output[output_offset].x = (unsigned char)average.x;
+  image_output[output_offset].y = (unsigned char)average.y;
+  image_output[output_offset].z = (unsigned char)average.z;
+  image_output[output_offset].w = 255;
+
+}
+
 
 /* Host code */
 
@@ -209,7 +253,16 @@ int main(void) {
 	  dim3    blocksPerGrid(IMAGE_DIM / 16, IMAGE_DIM / 16);
 	  dim3    threadsPerBlock(16, 16);
 	  
-	  //TODO: Complete exercise 03
+	  // copy image to device memory
+	  cudaMemcpy(d_image, h_image, image_size, cudaMemcpyHostToDevice);
+	  // loop for number of iterations
+          for (i = 0; i < ITERATIONS; i++){
+	    image_blur_2d << <blocksPerGrid, threadsPerBlock >> >(d_image,d_image_output);
+	    d_image_temp = d_image_output;
+	    d_image_output = d_image;
+	    d_image = d_image_temp;
+	  }
+	  cudaMemcpy(h_image, d_image, image_size, cudaMemcpyDeviceToHost);
 	  
 	  cudaEventRecord(stop, 0);
 	  cudaEventSynchronize(stop);
